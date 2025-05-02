@@ -1,43 +1,37 @@
 plugins {
-    id("java")
-    id("org.jetbrains.intellij") version "1.17.4"
+    id 'java'
+    id 'org.jetbrains.intellij' version '1.17.4'
 }
 
-group = "com.project"
-version = "1.0-SNAPSHOT"
+group = 'com.project'
+version = '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
 }
 
-// Configure Gradle IntelliJ Plugin
-// Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-    version.set("2024.1.7")
-    type.set("IC") // Target IDE Platform
-    plugins.set(listOf(/* Plugin Dependencies */))
+    version = '2024.1.7'
+    type = 'IC' // Target IDE Platform
+    plugins = [] // 여기에 필요한 plugin 의존성 추가
 }
 
-tasks {
-    // Set the JVM compatibility versions
-    withType<JavaCompile> {
-        sourceCompatibility = "17"
-        targetCompatibility = "17"
-    }
+tasks.withType(JavaCompile).configureEach {
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+}
 
-    patchPluginXml {
-        sinceBuild.set("241")
-        untilBuild.set("241.*")
-    }
+patchPluginXml {
+    sinceBuild = '241'
+    untilBuild = '241.*'
+}
 
-    signPlugin {
-        certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
-        privateKey.set(System.getenv("PRIVATE_KEY"))
-        password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
-    }
+signPlugin {
+    certificateChain = System.getenv('CERTIFICATE_CHAIN')
+    privateKey = System.getenv('PRIVATE_KEY')
+    password = System.getenv('PRIVATE_KEY_PASSWORD')
+}
 
-    publishPlugin {
-        token.set(System.getenv("PUBLISH_TOKEN"))
-    }
-
+publishPlugin {
+    token = System.getenv('PUBLISH_TOKEN')
 }

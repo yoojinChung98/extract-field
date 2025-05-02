@@ -25,17 +25,17 @@
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
 
-<!--        <toolWindow-->
-<!--                id="ExtractField"-->
-<!--                anchor="right"-->
-<!--                factoryClass="com.project.extractfield.ExtractFieldToolWindowFactory"-->
-<!--                secondary="true"-->
-<!--        />-->
+        <toolWindow
+                id="ExtractField"
+                anchor="right"
+                factoryClass="com.project.extractfield.ExtractFieldToolWindowFactory"
+                secondary="true"
+        />
 
     </extensions>
-    <actions>
-        <action id="ExtractField.ExtractFieldAction" class="com.project.extractfield.ExtractFieldAction" text="자바 필드 선언문 추출">
-            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-        </action>
-    </actions>
+<!--    <actions>-->
+<!--        <action id="ExtractField.ExtractFieldAction" class="com.project.extractfield.ExtractFieldAction" text="자바 필드 선언문 추출">-->
+<!--            <add-to-group group-id="EditorPopupMenu" anchor="last"/>-->
+<!--        </action>-->
+<!--    </actions>-->
 </idea-plugin>
