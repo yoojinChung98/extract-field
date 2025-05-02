@@ -2,23 +2,22 @@ package com.project.extractfield;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.swing.*;
+
 import com.intellij.ui.components.JBTextArea;
-import com.intellij.ui.components.JBTextField;
 
 public class DtoFieldExtractor implements ActionListener {
 
-	private final JBTextField inputSelectField;
-	private final JBTextField inputDtoField;
-	private final JBTextArea resultArea;
+	private final JTextArea inputSelectField;
+	private final JTextArea inputDtoField;
+	private final JTextArea resultArea;
 
-	public DtoFieldExtractor(JBTextField inputSelectField, JBTextField inputDtoField, JBTextArea resultArea) {
+	public DtoFieldExtractor(JTextArea inputSelectField, JTextArea inputDtoField, JTextArea resultArea) {
 		this.inputSelectField = inputSelectField;
 		this.inputDtoField = inputDtoField;
 		this.resultArea = resultArea;
@@ -26,37 +25,25 @@ public class DtoFieldExtractor implements ActionListener {
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		String selectQuery = inputSelectField.getText();
-		String dtoText = inputDtoField.getText();
+		String selectStr = inputSelectField.getText();
+		String dtoStr = inputDtoField.getText();
 
 		// 실제 로직을 여기에 구현
-		String result = "입력된 SELECT: " + selectQuery + "\n입력된 DTO: " + dtoText;
-		resultArea.setText(result);
-
-		System.out.println("logic 버튼 실행완료");
-	}
-
-	// 태그 및 주석 제거
-	private static String removeTagsComments(String str) {
-		str = str.replaceAll("<!\\[CDATA\\[", "")
-			.replaceAll("]]>", "")
-			.replaceAll("<[^>]*>", "")
-			.replaceAll("--.*", "")
-			.replaceAll("/\\*.*?\\*/", "")
-			.replaceAll("\\s+", " ")
-			.replaceAll("SELECT .*?\\*/", " ");
-		return str.trim();
+		List<String> fieldNames = extractFieldNames(selectStr);
+		List<String> declarations = retrieveFieldDeclarations(fieldNames, dtoStr);
+		resultArea.setText(declarations.stream().collect(Collectors.joining("\n")));
+		resultArea.setVisible(true);
 	}
 
 	// 필드 추출
 	private static List<String> extractFieldNames(String selectStr) {
-		String cleaned = removeTagsComments(selectStr);
+		String cleanSelectStr = removeTagsComments(selectStr);
 
 		List<String> chunks = new ArrayList<>();
 		StringBuilder current = new StringBuilder();
 		int depth = 0;
 
-		for (char c : cleaned.toCharArray()) {
+		for (char c : cleanSelectStr.toCharArray()) {
 			if (c == ',' && depth == 0) {
 				chunks.add(current.toString().trim());
 				current.setLength(0);
@@ -77,17 +64,40 @@ public class DtoFieldExtractor implements ActionListener {
 			.collect(Collectors.toList());
 	}
 
+	// 태그 및 주석 제거
+	private static String removeTagsComments(String selectStr) {
+		return selectStr
+			.replaceAll("<!\\[CDATA\\[", "")
+			.replaceAll("]]>", "")
+			.replaceAll("<[^>]*>", "")
+			.replaceAll("--.*", "")
+			.replaceAll("/\\*.*?\\*/", "")
+			.replaceAll("\\s+", " ")
+			.replaceAll("SELECT .*?\\*/", " ")
+			.trim();
+	}
+
 	private static String extractField(String str) {
 		String upper = str.toUpperCase();
 
 		if (upper.contains(" AS ")) {
-			return upper.split(" AS ")[1].trim();
+			String[] asSplit = upper.split(" AS ");
+			String finalChunk = asSplit[asSplit.length - 1].trim();
+			return finalChunk;
+			// // 서브쿼리에 AS 가 있으나 해당 서브쿼리에 대한 AS 키워드는 생략된 경우
+			// if(finalChunk.contains(" ")) {
+			// 	String[] blankSplit = finalChunk.split(" ");
+			// 	return blankSplit[blankSplit.length -1].trim();
+			// } else {
+			// 	return finalChunk;
+			// }
 		} else {
-			String lastToken = str.trim().split("\\s+")[str.trim().split("\\s+").length - 1];
-			if (lastToken.contains(".")) {
-				return lastToken.substring(lastToken.indexOf('.') + 1).trim();
+			String[] blankSplit = str.split("\\s+");
+			String lastWord = blankSplit[blankSplit.length - 1];
+			if (lastWord.contains(".")) {
+				return lastWord.substring(lastWord.indexOf('.') + 1);
 			} else {
-				return lastToken.trim();
+				return lastWord;
 			}
 		}
 	}
@@ -102,24 +112,28 @@ public class DtoFieldExtractor implements ActionListener {
 		return result.toString();
 	}
 
-	private static List<String> retrieveFieldDeclarations(List<String> fieldNames, String dtoPath) throws IOException {
+	private static List<String> retrieveFieldDeclarations(List<String> fieldNames, String dtoStr) {
 		List<String> result = new ArrayList<>();
-		List<String> lines = Files.readAllLines(Paths.get(dtoPath));
+		List<String> lines = Arrays.asList(dtoStr.split("\\R")); // 줄 단위로 분리
 		String lastComment = "";
 
 		for (String line : lines) {
 			String cleaned = line.strip();
 
-			if (cleaned.startsWith("/**") || cleaned.startsWith("/*") || cleaned.startsWith("*") || cleaned.startsWith(
-				"//")) {
+			if (cleaned.startsWith("/**") || cleaned.startsWith("/*") || cleaned.startsWith("*")
+				|| cleaned.startsWith("//") && !cleaned.startsWith("*/")) {
 				lastComment = cleaned.replaceAll("^\\s*(/\\*+|\\*+|//)", "").replaceAll("\\*/$", "").strip();
 			}
 
 			if (cleaned.startsWith("private")) {
 				for (String field : fieldNames) {
-					if (cleaned.toLowerCase().contains(field.toLowerCase())) {
-						result.add(cleaned + (lastComment.isEmpty() ? "" : " // " + lastComment));
-						lastComment = "";
+					if (cleaned.toLowerCase().contains(" " + field.toLowerCase() + " ")) {
+						if("".equals(lastComment)) {
+							result.add(cleaned + (lastComment.isEmpty() ? "" : " // " + lastComment));
+							lastComment = "";
+						} else {
+							result.add(cleaned);
+						}
 						break;
 					}
 				}
@@ -139,7 +153,6 @@ public class DtoFieldExtractor implements ActionListener {
 				result.add(audit);
 			}
 		}
-
 		return result;
 	}
 }
