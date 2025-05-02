@@ -1,18 +1,24 @@
 package com.project.extractfield;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-
-public class ExtractFieldLogic implements ActionListener {
+public class DtoFieldExtractor implements ActionListener {
 
 	private final JBTextField inputSelectField;
 	private final JBTextField inputDtoField;
 	private final JBTextArea resultArea;
 
-	public ExtractFieldLogic(JBTextField inputSelectField, JBTextField inputDtoField, JBTextArea resultArea) {
+	public DtoFieldExtractor(JBTextField inputSelectField, JBTextField inputDtoField, JBTextArea resultArea) {
 		this.inputSelectField = inputSelectField;
 		this.inputDtoField = inputDtoField;
 		this.resultArea = resultArea;
@@ -56,11 +62,14 @@ public class ExtractFieldLogic implements ActionListener {
 				current.setLength(0);
 			} else {
 				current.append(c);
-				if (c == '(') depth++;
-				else if (c == ')') depth--;
+				if (c == '(')
+					depth++;
+				else if (c == ')')
+					depth--;
 			}
 		}
-		if (!current.toString().isBlank()) chunks.add(current.toString().trim());
+		if (!current.toString().isBlank())
+			chunks.add(current.toString().trim());
 
 		return chunks.stream()
 			.map(DtoFieldExtractor::extractField)
@@ -101,7 +110,8 @@ public class ExtractFieldLogic implements ActionListener {
 		for (String line : lines) {
 			String cleaned = line.strip();
 
-			if (cleaned.startsWith("/**") || cleaned.startsWith("/*") || cleaned.startsWith("*") || cleaned.startsWith("//")) {
+			if (cleaned.startsWith("/**") || cleaned.startsWith("/*") || cleaned.startsWith("*") || cleaned.startsWith(
+				"//")) {
 				lastComment = cleaned.replaceAll("^\\s*(/\\*+|\\*+|//)", "").replaceAll("\\*/$", "").strip();
 			}
 
