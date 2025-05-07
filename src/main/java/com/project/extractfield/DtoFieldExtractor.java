@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 
 import javax.swing.*;
 
-
 public class DtoFieldExtractor implements ActionListener {
 
 	private final JCheckBox auditChkBox;
@@ -18,7 +17,8 @@ public class DtoFieldExtractor implements ActionListener {
 	private final JTextArea inputDtoField;
 	private final JTextArea resultArea;
 
-	public DtoFieldExtractor(JCheckBox auditChkBox, JTextArea inputSelectField, JTextArea inputDtoField, JTextArea resultArea) {
+	public DtoFieldExtractor(JCheckBox auditChkBox, JTextArea inputSelectField, JTextArea inputDtoField,
+		JTextArea resultArea) {
 		this.auditChkBox = auditChkBox;
 		this.inputSelectField = inputSelectField;
 		this.inputDtoField = inputDtoField;
@@ -82,24 +82,25 @@ public class DtoFieldExtractor implements ActionListener {
 	private static String extractField(String str) {
 		String upper = str.toUpperCase();
 
+		// AS 키워드가 있는 경우 : AS 로 split 후 가장 마지막 문자열 사용
 		if (upper.contains(" AS ")) {
 			String[] asSplit = upper.split(" AS ");
-			String finalChunk = asSplit[asSplit.length - 1].trim();
-			return finalChunk;
-			// // 서브쿼리에 AS 가 있으나 해당 서브쿼리에 대한 AS 키워드는 생략된 경우
-			// if(finalChunk.contains(" ")) {
-			// 	String[] blankSplit = finalChunk.split(" ");
-			// 	return blankSplit[blankSplit.length -1].trim();
-			// } else {
-			// 	return finalChunk;
-			// }
+			String lastChunk = asSplit[asSplit.length - 1].trim();
+			if (lastChunk.contains(" ")) {
+				// 서브쿼리에 AS 가 있으나 해당 서브쿼리에 대한 AS 키워드는 생략된 경우
+				String[] blankSplit = lastChunk.split(" ");
+				return blankSplit[blankSplit.length - 1].trim();
+			} else {
+				return lastChunk;
+			}
+			// AS 키워드가 없는 경우 : 공백으로 split 후 가장 마지막 문자열 사용
 		} else {
 			String[] blankSplit = str.split("\\s+");
-			String lastWord = blankSplit[blankSplit.length - 1];
-			if (lastWord.contains(".")) {
-				return lastWord.substring(lastWord.indexOf('.') + 1);
+			String lastChunk = blankSplit[blankSplit.length - 1];
+			if (lastChunk.contains(".")) {
+				return lastChunk.substring(lastChunk.indexOf('.') + 1);
 			} else {
-				return lastWord;
+				return lastChunk;
 			}
 		}
 	}
@@ -120,45 +121,74 @@ public class DtoFieldExtractor implements ActionListener {
 		String lastComment = "";
 
 		for (String line : lines) {
-			String cleaned = line.strip();
+			String cleanedLine = line.strip();
 
-			if (cleaned.startsWith("/**") || cleaned.startsWith("/*") || cleaned.startsWith("*")
-				|| cleaned.startsWith("//") && !cleaned.startsWith("*/")) {
-				lastComment = cleaned.replaceAll("^\\s*(/\\*+|\\*+|//)", "").replaceAll("\\*/$", "").strip();
-			}
+			lastComment = takeComment(cleanedLine, lastComment);
 
-			if (cleaned.startsWith("private")) {
+			if (cleanedLine.startsWith("private")) {
 				for (String field : fieldNames) {
-					String regex = "\\s+" + Pattern.quote(field.toLowerCase()) + "(\\s+|;)";
-					if (cleaned.toLowerCase().matches(".*" + regex + ".*")) {
-						if("".equals(lastComment)) {
-							result.add(cleaned);
-						} else {
-							result.add(cleaned + (lastComment.isEmpty() ? "" : " // " + lastComment));
-							lastComment = "";
-						}
+					if (lineContainField(cleanedLine, field)) {
+						result.add(cleanedLine + (lastComment.isEmpty() ? "" : " // " + lastComment));
+						lastComment = "";
 						break;
 					}
 				}
 			}
 		}
 
-		if(needAudit) {
-			// Oracle Audit 필드 추가
-			List<String> auditFields = List.of(
-				"private String frstEntrEmpno; // 최초입력자사번",
-				"private LocalDateTime frstEntrDtm; // 최초입력일시",
-				"private String finlUpidEmpno; // 최종수정자사번",
-				"private LocalDateTime finlUpdtDtm; // 최종수정일시"
-			);
-			for (String audit : auditFields) {
-				String name = audit.split(" ")[2].replace(";", "");
-				if (fieldNames.contains(name)) {
-					result.add(audit);
-				}
-			}
+		// ORACLE Auidt 컬럼 관련 필드 추가
+		if (needAudit) {
+			addAuditField(result, fieldNames);
 		}
 
 		return result;
+	}
+
+	private static String takeComment(String sourceStr, String lastComment) {
+
+		if (isComment(sourceStr)) {
+			String comment = sourceStr.replaceAll("^\\s*(/\\*+|\\*+|//)", "").replaceAll("\\*/$", "").strip();
+			return lastComment + comment;
+		}
+		return lastComment;
+	}
+
+	private static boolean isComment(String targetStr) {
+		if(targetStr.startsWith("*/")) {
+			return false;
+		} else if (targetStr.startsWith("/**")
+			|| targetStr.startsWith("/*")
+			|| targetStr.startsWith("*")
+			|| targetStr.startsWith("//")) {
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean lineContainField(String cleanLine, String field) {
+		// 정규식 : '하나 이상의 공백 + 필드명(lowercase) + 하나 이상의 공백 + ;'
+		String matchStr = "\\s+" + Pattern.quote(field.toLowerCase()) + "(\\s+|;)";
+		String lowerLine = cleanLine.toLowerCase();
+
+		// matchStr 이 lowerLine 어디에든 존재한다면 true
+		return lowerLine.matches(".*" + matchStr + ".*");
+	}
+
+	private static void addAuditField(List<String> targetList, List<String> fieldNames) {
+		List<String> auditFields = List.of(
+			"private String frstEntrEmpno; // 최초입력자사번",
+			"private LocalDateTime frstEntrDtm; // 최초입력일시",
+			"private String finlUpidEmpno; // 최종수정자사번",
+			"private LocalDateTime finlUpdtDtm; // 최종수정일시"
+		);
+
+		for (String audit : auditFields) {
+			String name = audit.split(" ")[2].replace(";", "");
+			for (String field : fieldNames) {
+				if (name.equalsIgnoreCase(field)) {
+					targetList.add(audit);
+				}
+			}
+		}
 	}
 }
