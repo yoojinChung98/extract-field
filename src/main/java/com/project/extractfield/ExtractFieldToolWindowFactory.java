@@ -19,9 +19,13 @@ public class ExtractFieldToolWindowFactory implements ToolWindowFactory, DumbAwa
 	@Override
 	public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
 
+
+
 		// 입력 필드
 		JTextArea inputSelectField = new JTextArea();
 		JTextArea inputDtoField = new JTextArea();
+		changeDefaultFont(inputSelectField);
+		changeDefaultFont(inputDtoField);
 		JScrollPane selectScroll = elaborateScrollPanel(inputSelectField, "SELECT 구문만 입력");
 		JScrollPane dtoScroll = elaborateScrollPanel(inputDtoField, "Result DTO 전체 입력");
 		JCheckBox auditChkBox = new JCheckBox("Audit 필드 출력");
@@ -29,6 +33,7 @@ public class ExtractFieldToolWindowFactory implements ToolWindowFactory, DumbAwa
 
 		// 결과 출력 영역
 		JTextArea resultArea = new JTextArea();
+		changeDefaultFont(resultArea);
 		resultArea.setEditable(false); // 읽기 전용으로 설정
 		resultArea.setLineWrap(true);  // 줄바꿈
 		resultArea.setVisible(false);
@@ -37,7 +42,7 @@ public class ExtractFieldToolWindowFactory implements ToolWindowFactory, DumbAwa
 
 
 		// 버튼 생성
-		JButton runLogicBtn = new JButton("로직 실행");
+		JButton runLogicBtn = new JButton("필드 추출");
 		JButton copyResultBtn = new JButton("결과 복사");
 		// 버튼 영역 패널 (수평 정렬)
 		JPanel buttonPanel = new JPanel();
@@ -70,6 +75,9 @@ public class ExtractFieldToolWindowFactory implements ToolWindowFactory, DumbAwa
 		// ToolWindow에 등록
 		Content content = ContentFactory.getInstance().createContent(panel, "", false);
 		toolWindow.getContentManager().addContent(content);
+
+		System.out.println("Current file.encoding: " + System.getProperty("file.encoding"));
+
 	}
 
 	private JScrollPane elaborateScrollPanel(JTextArea textArea, String label) {
@@ -93,5 +101,18 @@ public class ExtractFieldToolWindowFactory implements ToolWindowFactory, DumbAwa
 	private void addLabelAndContentIn(JPanel targetPanel, JScrollPane content) {
 		targetPanel.add(content);
 		targetPanel.add(Box.createVerticalStrut(10));
+	}
+
+	private void changeDefaultFont(JTextArea textArea) {
+		String os = System.getProperty("os.name").toLowerCase();
+		Font font;
+		if (os.contains("win")) {
+			font = new Font("Malgun Gothic", Font.PLAIN, 13);
+		} else if (os.contains("mac")) {
+			font = new Font("Apple SD Gothic Neo", Font.PLAIN, 13);
+		} else {
+			font = new Font("NanumGothic", Font.PLAIN, 13); // 또는 UnDotum
+		}
+		textArea.setFont(font);
 	}
 }

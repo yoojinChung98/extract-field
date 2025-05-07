@@ -19,11 +19,12 @@ intellij {
 tasks.withType(JavaCompile).configureEach {
     sourceCompatibility = '17'
     targetCompatibility = '17'
+    options.encoding = 'UTF-8'
 }
 
 patchPluginXml {
     sinceBuild = '241'
-    untilBuild = '241.*'
+    untilBuild = '999.*'
 }
 
 signPlugin {
