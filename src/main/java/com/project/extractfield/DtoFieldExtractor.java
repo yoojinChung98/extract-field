@@ -30,14 +30,11 @@ public class DtoFieldExtractor implements ActionListener {
 		String selectStr = inputSelectField.getText();
 		String dtoStr = inputDtoField.getText();
 
-		// 실제 로직을 여기에 구현
-		System.out.println("actionPerformed 시작");
 		List<String> fieldNames = extractFieldNames(selectStr);
 		List<String> declarations = retrieveFieldDeclarations(auditChkBox.isSelected(), fieldNames, dtoStr);
 		String resuultTemp = declarations.stream().collect(Collectors.joining("\n"));
 		resultArea.setText(resuultTemp);
 		resultArea.setVisible(true);
-		System.out.println("actionPerformed 종료. resuultTemp : " + resuultTemp);
 	}
 
 	// 필드 추출

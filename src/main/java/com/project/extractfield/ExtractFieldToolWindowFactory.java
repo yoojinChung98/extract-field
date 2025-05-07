@@ -11,7 +11,6 @@ import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
-import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 
@@ -23,8 +22,8 @@ public class ExtractFieldToolWindowFactory implements ToolWindowFactory, DumbAwa
 		// 입력 필드
 		JTextArea inputSelectField = new JTextArea();
 		JTextArea inputDtoField = new JTextArea();
-		JBScrollPane selectScroll = elaborateTextArea(inputSelectField);
-		JBScrollPane dtoScroll = elaborateTextArea(inputDtoField);
+		JScrollPane selectScroll = elaborateScrollPanel(inputSelectField, "SELECT 구문만 입력");
+		JScrollPane dtoScroll = elaborateScrollPanel(inputDtoField, "Result DTO 전체 입력");
 		JCheckBox auditChkBox = new JCheckBox("Audit 필드 출력");
 		auditChkBox.setSelected(false);
 
@@ -32,7 +31,10 @@ public class ExtractFieldToolWindowFactory implements ToolWindowFactory, DumbAwa
 		JTextArea resultArea = new JTextArea();
 		resultArea.setEditable(false); // 읽기 전용으로 설정
 		resultArea.setLineWrap(true);  // 줄바꿈
-		resultArea.setBorder(BorderFactory.createLineBorder(Color.GRAY)); // 테두리 추가
+		resultArea.setVisible(false);
+		JScrollPane resultScroll = elaborateScrollPanel(resultArea, "결과");
+		resultScroll.setPreferredSize(new Dimension(0, 60)); // 높이 50px (폭은 아래 레이아웃에서 조절됨)
+
 
 		// 버튼 생성
 		JButton runLogicBtn = new JButton("로직 실행");
@@ -41,17 +43,16 @@ public class ExtractFieldToolWindowFactory implements ToolWindowFactory, DumbAwa
 		JPanel buttonPanel = new JPanel();
 		buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
 		buttonPanel.add(runLogicBtn);
-		buttonPanel.add(Box.createHorizontalStrut(10));
 		buttonPanel.add(copyResultBtn);
 
 		// 패널 생성
 		JPanel panel = new JPanel();
 		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-		addLabelAndContentIn(panel, "SELECT 구문만 입력", selectScroll);
-		addLabelAndContentIn(panel, "Result DTO 입력", dtoScroll);
-		addLabelAndContentIn(panel, null, auditChkBox);
-		addLabelAndContentIn(panel, null, buttonPanel);
-		addLabelAndContentIn(panel, "결과", resultArea);
+		addLabelAndContentIn(panel, selectScroll);
+		addLabelAndContentIn(panel, dtoScroll);
+		addLabelAndContentIn(panel, auditChkBox);
+		addLabelAndContentIn(panel, buttonPanel);
+		addLabelAndContentIn(panel, resultScroll);
 
 		// 버튼 이벤트 핸들링
 		runLogicBtn.addActionListener(new DtoFieldExtractor(auditChkBox, inputSelectField, inputDtoField, resultArea));
@@ -71,50 +72,26 @@ public class ExtractFieldToolWindowFactory implements ToolWindowFactory, DumbAwa
 		toolWindow.getContentManager().addContent(content);
 	}
 
-	private JBScrollPane elaborateTextArea(JTextArea textArea) {
+	private JScrollPane elaborateScrollPanel(JTextArea textArea, String label) {
 		textArea.setLineWrap(true);
-		JBScrollPane scrollPane = new JBScrollPane(textArea);
-		scrollPane.setPreferredSize(new Dimension(0, 50)); // 높이 50px (폭은 아래 레이아웃에서 조절됨)
+		JScrollPane scrollPane = new JScrollPane(textArea);
+		scrollPane.setPreferredSize(new Dimension(0, 30));
+		scrollPane.setBorder(BorderFactory.createTitledBorder(label));
 		return scrollPane;
 	}
 
-	// private void addLabelAndContentIn(JPanel targetPanel, String label, JBTextField content) {
-	// 	if(label != null) {
-	// 		targetPanel.add(new JLabel(label));
-	// 	}
-	// 	targetPanel.add(content);
-	// 	targetPanel.add(Box.createVerticalStrut(10));
-	// }
-
-	private void addLabelAndContentIn(JPanel targetPanel, String label, JPanel content) {
-		if (label != null) {
-			targetPanel.add(new JLabel(label));
-		}
+	private void addLabelAndContentIn(JPanel targetPanel, JPanel content) {
 		targetPanel.add(content);
-		targetPanel.add(Box.createVerticalStrut(30));
+		targetPanel.add(Box.createVerticalStrut(10));
 	}
 
-	private void addLabelAndContentIn(JPanel targetPanel, String label, JCheckBox content) {
-		if (label != null) {
-			targetPanel.add(new JLabel(label));
-		}
+	private void addLabelAndContentIn(JPanel targetPanel, JCheckBox content) {
 		targetPanel.add(content);
-		targetPanel.add(Box.createVerticalStrut(30));
+		targetPanel.add(Box.createVerticalStrut(10));
 	}
 
-	private void addLabelAndContentIn(JPanel targetPanel, String label, JTextArea content) {
-		if (label != null) {
-			targetPanel.add(new JLabel(label));
-		}
+	private void addLabelAndContentIn(JPanel targetPanel, JScrollPane content) {
 		targetPanel.add(content);
-		targetPanel.add(Box.createVerticalStrut(30));
-	}
-
-	private void addLabelAndContentIn(JPanel targetPanel, String label, JBScrollPane content) {
-		if (label != null) {
-			targetPanel.add(new JLabel(label));
-		}
-		targetPanel.add(content);
-		targetPanel.add(Box.createVerticalStrut(30));
+		targetPanel.add(Box.createVerticalStrut(10));
 	}
 }
