@@ -133,6 +133,7 @@ public class DtoFieldExtractor implements ActionListener {
 						break;
 					}
 				}
+				lastComment = "";
 			}
 		}
 
